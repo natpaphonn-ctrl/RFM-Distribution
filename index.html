@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFM Distribution Dashboard v4.1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-light: #3b82f6;
+            --color-accent: #dc2626;
+            --color-accent-light: #ef4444;
+            --color-success: #22c55e;
+            --color-warning: #facc15;
+            --color-error: #dc2626;
+            --color-bg: #ffffff;
+            --color-surface: #f9fafb;
+            --color-border: #e5e7eb;
+            --color-text: #1f2937;
+            --color-text-secondary: #6b7280;
+            --color-text-tertiary: #9ca3af;
+            --color-shadow: rgba(0,0,0,0.08);
+            --color-shadow-lg: rgba(0,0,0,0.12);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --transition: all 0.2s ease;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            color: var(--color-text);
+            background: var(--color-bg);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        header {
+            position: relative;
+            padding: 32px 0 24px;
+            border-bottom: 1px solid var(--color-border);
+            background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .version-badge {
+            background: var(--color-primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        /* Buttons */
+        button {
+            padding: 8px 16px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg);
+            color: var(--color-text);
+            border-radius: var(--radius-md);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button:hover {
+            background: var(--color-surface);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        button.primary {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        button.primary:hover {
+            background: var(--color-primary-light);
+            border-color: var(--color-primary-light);
+        }
+
+        button.small {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            min-width: 240px;
+            margin-top: 4px;
+            box-shadow: 0 4px 12px var(--color-shadow-lg);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+
+        .dropdown:hover .dropdown-menu,
+        .dropdown.active .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-menu button {
+            width: 100%;
+            border: none;
+            border-radius: 0;
+            text-align: left;
+            padding: 12px 16px;
+            background: transparent;
+            border-bottom: 1px solid var(--color-border);
+            font-size: 12px;
+        }
+
+        .dropdown-menu button:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-menu button:hover {
+            background: var(--color-surface);
+            border: none;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            border-bottom: 1px solid var(--color-border);
+            margin-top: 16px;
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            border-bottom: 3px solid transparent;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .tab-button:hover {
+            color: var(--color-text);
+            background: var(--color-surface);
+        }
+
+        .tab-button.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+            background: transparent;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Stats Banner */
+        .stats-banner {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin: 24px 0;
+        }
+
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-text-tertiary);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        /* Chart Filter Bar */
+        .chart-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 24px 0 0;
+            padding: 10px 16px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-bottom: none;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .chart-filter-bar label {
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-tertiary);
+            white-space: nowrap;
+        }
+
+        .chart-filter-bar .filter-input {
+            width: 64px;
+            padding: 5px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            text-align: center;
+            background: white;
+        }
+
+        .chart-filter-bar .filter-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+        }
+
+        .chart-filter-bar .filter-slider-wrap {
+            flex: 1;
+            max-width: 300px;
+            position: relative;
+            height: 24px;
+        }
+
+        .chart-filter-bar .filter-slider-wrap .range-track {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+        }
+
+        .chart-filter-bar .filter-slider-wrap .range-fill {
+            position: absolute;
+            top: 10px;
+            height: 4px;
+            background: var(--color-primary);
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        .chart-filter-bar .filter-slider-wrap input[type="range"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 24px;
+            margin: 0;
+            padding: 0;
+            background: none;
+            border: none;
+            pointer-events: none;
+            -webkit-appearance: none;
+            appearance: none;
+            z-index: 2;
+        }
+        .chart-filter-bar .filter-slider-wrap input[type="range"]:nth-child(4) { z-index: 3; }
+
+        .chart-filter-bar .filter-slider-wrap input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            border: 2px solid white;
+            cursor: pointer;
+            pointer-events: all;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .chart-filter-bar .filter-slider-wrap input[type="range"]::-webkit-slider-runnable-track {
+            background: transparent;
+            height: 4px;
+        }
+        .chart-filter-bar .filter-slider-wrap input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            border: 2px solid white;
+            cursor: pointer;
+            pointer-events: all;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .chart-filter-bar .filter-slider-wrap input[type="range"]::-moz-range-track {
+            background: transparent;
+            height: 4px;
+        }
+
+        .chart-filter-bar .filter-range-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--color-primary);
+            font-weight: 500;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .chart-filter-bar .filter-btn-group {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .chart-filter-bar button.filter-btn {
+            padding: 4px 10px;
+            font-size: 11px;
+            border: 1px solid var(--color-border);
+            background: white;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            transition: var(--transition);
+            font-family: var(--font-mono);
+        }
+        .chart-filter-bar button.filter-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        .chart-filter-bar button.filter-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            padding: 24px;
+            margin: 0 0 24px;
+            box-shadow: 0 1px 3px var(--color-shadow);
+            position: relative;
+            height: 400px;
+        }
+        .chart-container.no-filter-bar {
+            border-radius: var(--radius-lg);
+            margin-top: 24px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Segment Builder */
+        .segment-builder {
+            margin: 24px 0;
+        }
+
+        .builder-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .builder-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .builder-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: white;
+        }
+
+        .builder-table thead {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .builder-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--color-text-tertiary);
+        }
+
+        .builder-table tbody tr {
+            border-bottom: 1px solid var(--color-border);
+            transition: var(--transition);
+        }
+
+        .builder-table tbody tr:hover {
+            background: var(--color-surface);
+        }
+
+        .builder-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .builder-table td {
+            padding: 12px 16px;
+            font-size: 13px;
+        }
+
+        .color-indicator {
+            width: 12px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+        }
+
+        .segment-name-cell {
+            font-weight: 500;
+            max-width: 150px;
+        }
+
+        .segment-name-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            background: white;
+        }
+
+        .range-input {
+            width: 70px;
+            padding: 6px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .range-slider-container {
+            width: 200px;
+            padding: 4px 0;
+        }
+
+        .range-slider {
+            position: relative;
+            height: 28px;
+        }
+
+        /* Track background */
+        .range-slider .range-track {
+            position: absolute;
+            top: 12px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        /* Colored fill between handles */
+        .range-slider .range-fill {
+            position: absolute;
+            top: 12px;
+            height: 4px;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Both range inputs overlay the track */
+        .range-slider input[type="range"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 28px;
+            margin: 0;
+            padding: 0;
+            background: none;
+            border: none;
+            pointer-events: none;
+            -webkit-appearance: none;
+            appearance: none;
+            z-index: 2;
+        }
+
+        /* Second input on top for right handle priority */
+        .range-slider input[type="range"]:nth-child(3) {
+            z-index: 3;
+        }
+
+        /* Webkit thumb */
+        .range-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            border: 2.5px solid currentColor;
+            cursor: pointer;
+            pointer-events: all;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            transition: transform 0.1s;
+        }
+        .range-slider input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+        }
+
+        /* Webkit track — must be transparent so our custom track shows */
+        .range-slider input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: transparent;
+            border: none;
+        }
+
+        /* Firefox thumb */
+        .range-slider input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            border: 2.5px solid currentColor;
+            cursor: pointer;
+            pointer-events: all;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+
+        .range-slider input[type="range"]::-moz-range-track {
+            background: transparent;
+            border: none;
+            height: 4px;
+        }
+
+        .stat-count {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-text);
+        }
+
+        .stat-percent {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .mini-bar {
+            width: 60px;
+            height: 20px;
+            background: var(--color-border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+
+        .mini-bar-fill {
+            height: 100%;
+            background: currentColor;
+        }
+
+        .segment-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+
+
+        /* Summary Tab */
+        .summary-grid {
+            overflow-x: auto;
+            margin: 24px 0;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background: white;
+            font-size: 12px;
+        }
+
+        .summary-table thead {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .summary-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--color-text-tertiary);
+        }
+
+        .summary-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .summary-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .summary-color-cell {
+            width: 8px;
+            height: 100%;
+        }
+
+        .range-cell {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: var(--color-surface);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--color-text);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 12px var(--color-shadow-lg);
+            animation: slideIn 0.3s ease;
+            z-index: 2000;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            background: var(--color-success);
+        }
+
+        .toast.error {
+            background: var(--color-error);
+        }
+
+        /* Legend */
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Input file upload */
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Overlap warning */
+        .overlap-warning {
+            color: var(--color-error);
+            font-weight: 600;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <header class="container">
+        <div class="header-content">
+            <div class="header-title">
+                <h1>RFM Distribution</h1>
+                <span class="version-badge">v4.1</span>
+            </div>
+            <div class="header-actions"></div>
+        </div>
+    </header>
+
+    <main class="container" style="padding-bottom: 40px;">
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('r', event)">R Recency</button>
+            <button class="tab-button" onclick="switchTab('f', event)">F Frequency</button>
+            <button class="tab-button" onclick="switchTab('aov', event)">AOV</button>
+            <button class="tab-button" onclick="switchTab('bs', event)">BasketSize</button>
+            <button class="tab-button" onclick="switchTab('summary', event)">Summary</button>
+        </div>
+
+        <!-- R Recency Tab -->
+        <div id="tab-r" class="tab-content active">
+            <div class="stats-banner" id="stats-r"></div>
+            <div class="chart-filter-bar" id="filter-r"></div>
+            <div class="chart-container">
+                <div class="chart-wrapper">
+                    <canvas id="chart-r"></canvas>
+                </div>
+            </div>
+            <div class="segment-builder">
+                <div class="builder-header">
+                    <h3>Segment Builder - Recency</h3>
+                </div>
+                <table class="builder-table" id="builder-r"></table>
+            </div>
+        </div>
+
+        <!-- F Frequency Tab -->
+        <div id="tab-f" class="tab-content">
+            <div class="stats-banner" id="stats-f"></div>
+            <div class="chart-filter-bar" id="filter-f"></div>
+            <div class="chart-container">
+                <div class="chart-wrapper">
+                    <canvas id="chart-f"></canvas>
+                </div>
+            </div>
+            <div class="segment-builder">
+                <div class="builder-header">
+                    <h3>Segment Builder - Frequency</h3>
+                </div>
+                <table class="builder-table" id="builder-f"></table>
+            </div>
+        </div>
+
+        <!-- AOV Tab -->
+        <div id="tab-aov" class="tab-content">
+            <div class="stats-banner" id="stats-aov"></div>
+            <div class="chart-filter-bar" id="filter-aov"></div>
+            <div class="chart-container">
+                <div class="chart-wrapper">
+                    <canvas id="chart-aov"></canvas>
+                </div>
+            </div>
+            <div class="segment-builder">
+                <div class="builder-header">
+                    <h3>Segment Builder - AOV</h3>
+                </div>
+                <table class="builder-table" id="builder-aov"></table>
+            </div>
+        </div>
+
+        <!-- BasketSize Tab -->
+        <div id="tab-bs" class="tab-content">
+            <div class="stats-banner" id="stats-bs"></div>
+            <div class="chart-filter-bar" id="filter-bs"></div>
+            <div class="chart-container">
+                <div class="chart-wrapper">
+                    <canvas id="chart-bs"></canvas>
+                </div>
+            </div>
+            <div class="segment-builder">
+                <div class="builder-header">
+                    <h3>Segment Builder - BasketSize</h3>
+                </div>
+                <table class="builder-table" id="builder-bs"></table>
+            </div>
+        </div>
+
+        <!-- Summary Tab -->
+        <div id="tab-summary" class="tab-content">
+            <div style="margin: 24px 0;">
+                <h3>Segment Definitions Summary</h3>
+                <p style="color: var(--color-text-secondary); font-size: 13px; margin-top: 8px;">Cross-dimensional overview of all segments and their range definitions.</p>
+            </div>
+            <div class="summary-grid">
+                <table class="summary-table" id="summary-table"></table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // roundRect polyfill for older browsers
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (typeof r === 'number') r = [r, r, r, r];
+                const [tl, tr, br, bl] = r;
+                this.moveTo(x + tl, y);
+                this.lineTo(x + w - tr, y); this.quadraticCurveTo(x + w, y, x + w, y + tr);
+                this.lineTo(x + w, y + h - br); this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+                this.lineTo(x + bl, y + h); this.quadraticCurveTo(x, y + h, x, y + h - bl);
+                this.lineTo(x, y + tl); this.quadraticCurveTo(x, y, x + tl, y);
+                this.closePath();
+                return this;
+            };
+        }
+
+        // ============================================================
+        // DATA
+        // ============================================================
+        const rData = [
+          {r:0,n:363488},{r:1,n:412583},{r:2,n:199822},{r:3,n:183065},{r:4,n:144556},{r:5,n:123658},
+          {r:6,n:99122},{r:7,n:92386},{r:8,n:190354},{r:9,n:118585},{r:10,n:99928},{r:11,n:123682},
+          {r:12,n:118273},{r:13,n:112243},{r:14,n:112151},{r:15,n:89891},{r:16,n:94024},{r:17,n:102506},
+          {r:18,n:106665},{r:19,n:88902},{r:20,n:71711},{r:21,n:87982},{r:22,n:61313},{r:23,n:89011},
+          {r:24,n:78319},{r:25,n:74363},{r:26,n:60725},{r:27,n:67079},{r:28,n:50428},{r:29,n:52397},
+          {r:30,n:53637},{r:31,n:54688},{r:32,n:62228},{r:33,n:44006},{r:34,n:45126},{r:35,n:54305},
+          {r:36,n:57166},{r:37,n:37447},{r:38,n:39044},{r:40,n:46788},{r:41,n:34631},{r:42,n:27872},
+          {r:43,n:22963},{r:44,n:13797},{r:45,n:8397},{r:46,n:24492},{r:47,n:22506},{r:48,n:18675},
+          {r:49,n:20931},{r:50,n:26611},{r:51,n:22677},{r:52,n:20168},{r:53,n:20372},{r:54,n:24898},
+          {r:55,n:24775},{r:56,n:19193},{r:57,n:23298},{r:58,n:21743},{r:59,n:17338},{r:60,n:20701},
+          {r:61,n:19763},{r:62,n:21742},{r:63,n:11996},{r:64,n:16473},{r:65,n:16726},{r:66,n:9574},
+          {r:67,n:3775}
+        ];
+
+const fData = [
+          {f:1,n:281463},{f:2,n:325233},{f:3,n:361631},{f:4,n:275165},{f:5,n:275377},{f:6,n:195029},
+          {f:7,n:185253},{f:8,n:146478},{f:9,n:132705},{f:10,n:143540},{f:11,n:116260},{f:12,n:118489},
+          {f:13,n:86776},{f:14,n:90352},{f:15,n:83643},{f:16,n:93191},{f:17,n:61882},{f:18,n:63988},
+          {f:19,n:43004},{f:20,n:84661},{f:21,n:54252},{f:22,n:53472},{f:23,n:46724},{f:24,n:31682},
+          {f:25,n:73947},{f:26,n:41486},{f:27,n:37819},{f:28,n:42374},{f:29,n:31225},{f:30,n:39287},
+          {f:31,n:31622},{f:32,n:27823},{f:33,n:55620},{f:34,n:24614},{f:35,n:29988},{f:36,n:27058},
+          {f:37,n:27982},{f:38,n:25815},{f:39,n:15350},{f:40,n:37632},{f:41,n:21937},{f:42,n:25099},
+          {f:43,n:20118},{f:44,n:20249},{f:45,n:19938},{f:46,n:21800},{f:47,n:18017},{f:48,n:16410},
+          {f:49,n:7284},{f:50,n:58320},{f:51,n:13371},{f:52,n:16654},{f:53,n:17420},{f:54,n:12934},
+          {f:55,n:15793},{f:56,n:15865},{f:57,n:15305},{f:58,n:13758},{f:59,n:10650},{f:60,n:19030},
+          {f:61,n:12799},{f:62,n:13876},{f:63,n:10998},{f:64,n:12051},{f:65,n:11902},{f:66,n:21070},
+          {f:67,n:9339},{f:68,n:11325},{f:69,n:8783},{f:70,n:12318},{f:71,n:11146},{f:72,n:9816},{f:73,n:9866},
+          {f:74,n:6896},{f:75,n:15257},{f:76,n:9683},{f:77,n:9370},{f:78,n:8594},{f:79,n:5791},{f:80,n:13653},
+          {f:81,n:7812},{f:82,n:7233},{f:83,n:10099},{f:84,n:7208},{f:85,n:8662},{f:86,n:7875},{f:87,n:7511},
+          {f:88,n:7383},{f:89,n:7019},{f:90,n:8218},{f:91,n:5771},{f:92,n:8645},{f:93,n:6191},{f:94,n:5727},
+          {f:95,n:8309},{f:96,n:6990},{f:97,n:4823},{f:98,n:6927},{f:100,n:42954}
+        ];
+
+const aovData = [
+          {aov:1,n:673051},{aov:2,n:1096745},{aov:3,n:814573},{aov:4,n:541437},{aov:5,n:389472},
+          {aov:6,n:258740},{aov:7,n:185201},{aov:8,n:138906},{aov:9,n:103197},{aov:10,n:83821},
+          {aov:11,n:61083},{aov:12,n:48977},{aov:13,n:38912},{aov:14,n:31721},{aov:15,n:26597},
+          {aov:16,n:21912},{aov:17,n:18394},{aov:18,n:15902},{aov:19,n:13742},{aov:20,n:12367},
+          {aov:21,n:10012},{aov:22,n:8839},{aov:23,n:8022},{aov:24,n:7029},{aov:25,n:6127},{aov:26,n:5513},
+          {aov:27,n:5009},{aov:28,n:4586},{aov:29,n:4088},{aov:30,n:3944},{aov:31,n:3359},{aov:32,n:3061},
+          {aov:33,n:2744},{aov:34,n:2600},{aov:35,n:2427},{aov:36,n:2204},{aov:37,n:1987},{aov:38,n:1937},
+          {aov:39,n:1784},{aov:40,n:1772},{aov:41,n:1478},{aov:42,n:1417},{aov:43,n:1337},{aov:44,n:1238},
+          {aov:45,n:1214},{aov:46,n:1177},{aov:47,n:1066},{aov:48,n:973},{aov:49,n:898},{aov:50,n:926},
+          {aov:51,n:838},{aov:52,n:793},{aov:53,n:733},{aov:54,n:694},{aov:55,n:693},{aov:56,n:671},
+          {aov:57,n:614},{aov:58,n:607},{aov:59,n:567},{aov:60,n:559},{aov:61,n:535},{aov:62,n:505},
+          {aov:63,n:448},{aov:64,n:454},{aov:65,n:454},{aov:66,n:422},{aov:67,n:436},{aov:68,n:388},
+          {aov:69,n:388},{aov:70,n:393},{aov:71,n:320},{aov:72,n:338},{aov:73,n:355},{aov:74,n:308},
+          {aov:75,n:304},{aov:76,n:267},{aov:77,n:300},{aov:78,n:275},{aov:79,n:257},{aov:80,n:268},
+          {aov:81,n:233},{aov:82,n:219},{aov:83,n:239},{aov:84,n:223},{aov:85,n:229},{aov:86,n:220},
+          {aov:87,n:224},{aov:88,n:203},{aov:89,n:198},{aov:90,n:196},{aov:91,n:175},{aov:92,n:182},
+          {aov:93,n:166},{aov:94,n:178},{aov:95,n:144},{aov:96,n:170},{aov:97,n:154},{aov:98,n:144},
+          {aov:99,n:147},{aov:100,n:190},{aov:101,n:132},{aov:102,n:136},{aov:103,n:124},{aov:104,n:118},
+          {aov:105,n:116},{aov:106,n:110},{aov:107,n:118},{aov:108,n:113},{aov:109,n:118},{aov:110,n:119},
+          {aov:111,n:103},{aov:112,n:111},{aov:113,n:82},{aov:114,n:119},{aov:115,n:88},{aov:116,n:110},
+          {aov:117,n:105},{aov:118,n:90},{aov:119,n:79},{aov:120,n:98},{aov:121,n:78},{aov:122,n:81},
+          {aov:123,n:84},{aov:124,n:74},{aov:125,n:97},{aov:126,n:56},{aov:127,n:70},{aov:128,n:82},
+          {aov:129,n:63},{aov:130,n:66},{aov:131,n:57},{aov:132,n:60},{aov:133,n:65},{aov:134,n:63},
+          {aov:135,n:62},{aov:136,n:60},{aov:137,n:55},{aov:138,n:51},{aov:139,n:61},{aov:140,n:57},
+          {aov:141,n:70},{aov:142,n:38},{aov:143,n:51},{aov:144,n:59},{aov:145,n:51},{aov:146,n:52},
+          {aov:147,n:53},{aov:148,n:48},{aov:149,n:50},{aov:150,n:42},{aov:151,n:39},{aov:152,n:36},
+          {aov:153,n:48},{aov:154,n:36},{aov:155,n:48},{aov:156,n:46},{aov:157,n:35},{aov:158,n:40},
+          {aov:159,n:42},{aov:160,n:34},{aov:161,n:37},{aov:162,n:39},{aov:163,n:39},{aov:164,n:37},
+          {aov:165,n:48},{aov:166,n:33},{aov:167,n:40},{aov:168,n:31},{aov:169,n:40},{aov:170,n:37},
+          {aov:171,n:33},{aov:172,n:36},{aov:173,n:25},{aov:174,n:39},{aov:175,n:25},{aov:176,n:31},
+          {aov:177,n:32},{aov:178,n:23},{aov:179,n:18},{aov:180,n:33},{aov:181,n:35},{aov:182,n:35},
+          {aov:183,n:25},{aov:184,n:36},{aov:185,n:26},{aov:186,n:28},{aov:187,n:27},{aov:188,n:29},
+          {aov:189,n:21},{aov:190,n:32},{aov:191,n:23},{aov:192,n:23},{aov:193,n:18},{aov:194,n:16},
+          {aov:195,n:23},{aov:196,n:28},{aov:197,n:26},{aov:198,n:13},{aov:199,n:28},{aov:200,n:33},
+          {aov:201,n:22},{aov:202,n:17},{aov:203,n:25},{aov:204,n:17},{aov:205,n:15},{aov:206,n:23},
+          {aov:207,n:28},{aov:208,n:24},{aov:209,n:22},{aov:210,n:19},{aov:211,n:19},{aov:212,n:19},
+          {aov:213,n:13},{aov:214,n:17},{aov:215,n:8},{aov:216,n:20},{aov:217,n:15},{aov:218,n:15},
+          {aov:219,n:17},{aov:220,n:18},{aov:221,n:24},{aov:222,n:26},{aov:223,n:25},{aov:224,n:16},
+          {aov:225,n:17},{aov:226,n:12},{aov:227,n:17},{aov:228,n:14},{aov:229,n:10},{aov:230,n:16},
+          {aov:231,n:18},{aov:232,n:10},{aov:233,n:13},{aov:234,n:15},{aov:235,n:14},{aov:236,n:20},
+          {aov:237,n:13},{aov:238,n:13},{aov:239,n:17},{aov:240,n:21},{aov:241,n:15},{aov:242,n:15},
+          {aov:243,n:7},{aov:244,n:10},{aov:245,n:12},{aov:246,n:14},{aov:247,n:9},{aov:248,n:17},
+          {aov:249,n:10},{aov:250,n:12},{aov:251,n:10},{aov:252,n:13},{aov:253,n:18},{aov:254,n:15},
+          {aov:255,n:10},{aov:256,n:6},{aov:257,n:12},{aov:258,n:14},{aov:259,n:16},{aov:260,n:14},
+          {aov:261,n:11},{aov:262,n:9},{aov:263,n:15},{aov:264,n:12},{aov:265,n:10},{aov:266,n:9},
+          {aov:267,n:11},{aov:268,n:4},{aov:269,n:4},{aov:270,n:21},{aov:271,n:8},{aov:272,n:15},
+          {aov:273,n:12},{aov:274,n:5},{aov:275,n:11},{aov:276,n:9},{aov:277,n:8},{aov:278,n:11},{aov:279,n:4},
+          {aov:280,n:11},{aov:281,n:7},{aov:282,n:5},{aov:283,n:6},{aov:284,n:6},{aov:285,n:13},{aov:286,n:5},
+          {aov:287,n:8},{aov:288,n:6},{aov:289,n:12},{aov:290,n:7},{aov:291,n:8},{aov:292,n:10},{aov:293,n:8},
+          {aov:294,n:5},{aov:295,n:11},{aov:296,n:7},{aov:297,n:9},{aov:298,n:7},{aov:299,n:11},{aov:300,n:7},
+          {aov:301,n:7},{aov:302,n:5},{aov:303,n:9},{aov:304,n:7},{aov:305,n:9},{aov:306,n:4},{aov:307,n:4},
+          {aov:308,n:7},{aov:309,n:8},{aov:310,n:7},{aov:311,n:3},{aov:312,n:8},{aov:313,n:11},{aov:314,n:8},
+          {aov:315,n:3},{aov:316,n:7},{aov:317,n:8},{aov:318,n:10},{aov:319,n:7},{aov:320,n:5},{aov:321,n:3},
+          {aov:322,n:5},{aov:323,n:5},{aov:324,n:6},{aov:325,n:7},{aov:326,n:6},{aov:327,n:5},{aov:328,n:2},
+          {aov:329,n:2},{aov:330,n:4},{aov:331,n:3},{aov:332,n:6},{aov:333,n:10},{aov:334,n:5},{aov:335,n:7},
+          {aov:336,n:3},{aov:337,n:8},{aov:338,n:7},{aov:339,n:1},{aov:341,n:8},{aov:342,n:8},{aov:343,n:6},
+          {aov:344,n:4},{aov:345,n:4},{aov:346,n:2},{aov:347,n:5},{aov:348,n:6},{aov:349,n:6},{aov:350,n:4},
+          {aov:351,n:2},{aov:352,n:5},{aov:353,n:3},{aov:354,n:6},{aov:355,n:5},{aov:356,n:8},{aov:357,n:4},
+          {aov:358,n:5},{aov:359,n:5},{aov:360,n:5},{aov:361,n:6},{aov:362,n:5},{aov:363,n:2},{aov:364,n:4},
+          {aov:365,n:6},{aov:366,n:3},{aov:367,n:5},{aov:368,n:4},{aov:369,n:6},{aov:370,n:2},{aov:371,n:4},
+          {aov:372,n:5},{aov:373,n:1},{aov:374,n:6},{aov:375,n:5},{aov:376,n:4},{aov:377,n:4},{aov:378,n:2},
+          {aov:379,n:4},{aov:380,n:3},{aov:381,n:10},{aov:382,n:2},{aov:383,n:4},{aov:384,n:1},{aov:385,n:1},
+          {aov:386,n:4},{aov:387,n:5},{aov:388,n:5},{aov:389,n:2},{aov:390,n:5},{aov:392,n:2},{aov:393,n:5},
+          {aov:394,n:7},{aov:395,n:4},{aov:396,n:5},{aov:397,n:8},{aov:398,n:5},{aov:399,n:4},{aov:400,n:3},
+          {aov:401,n:6},{aov:402,n:5},{aov:403,n:4},{aov:404,n:3},{aov:405,n:6},{aov:406,n:3},{aov:407,n:4},
+          {aov:408,n:6},{aov:409,n:6},{aov:410,n:9},{aov:411,n:6},{aov:412,n:4},{aov:413,n:5},{aov:415,n:3},
+          {aov:416,n:3},{aov:417,n:1},{aov:418,n:4},{aov:419,n:7},{aov:420,n:4},{aov:421,n:2},{aov:422,n:3},
+          {aov:423,n:7},{aov:424,n:5},{aov:425,n:2},{aov:426,n:3},{aov:427,n:1},{aov:429,n:2},{aov:430,n:4},
+          {aov:431,n:4},{aov:432,n:1},{aov:433,n:2},{aov:434,n:1},{aov:436,n:3},{aov:437,n:1},{aov:438,n:3},
+          {aov:439,n:3},{aov:440,n:3},{aov:441,n:2},{aov:443,n:2},{aov:444,n:3},{aov:445,n:1},{aov:447,n:1},
+          {aov:449,n:1},{aov:450,n:3},{aov:451,n:4},{aov:452,n:3},{aov:453,n:2},{aov:455,n:2},{aov:456,n:4},
+          {aov:457,n:5},{aov:458,n:3},{aov:459,n:2},{aov:460,n:1},{aov:462,n:1},{aov:463,n:2},{aov:464,n:3},
+          {aov:465,n:3},{aov:466,n:2},{aov:467,n:2},{aov:469,n:3},{aov:470,n:2},{aov:471,n:2},{aov:473,n:1},
+          {aov:474,n:3},{aov:475,n:1},{aov:476,n:2},{aov:477,n:1},{aov:478,n:3},{aov:479,n:1},{aov:480,n:1},
+          {aov:481,n:2},{aov:482,n:1},{aov:483,n:5},{aov:485,n:2},{aov:486,n:2},{aov:487,n:4},{aov:488,n:1},
+          {aov:489,n:3},{aov:490,n:2},{aov:492,n:2},{aov:494,n:3},{aov:495,n:1},{aov:496,n:3},{aov:497,n:3},
+          {aov:499,n:3},{aov:500,n:3},{aov:501,n:2},{aov:502,n:2},{aov:503,n:3},{aov:504,n:3},{aov:505,n:2},
+          {aov:507,n:2},{aov:508,n:2},{aov:509,n:2},{aov:510,n:2},{aov:511,n:2},{aov:512,n:2},{aov:513,n:1},
+          {aov:514,n:2},{aov:515,n:1},{aov:516,n:3},{aov:517,n:2},{aov:518,n:1},{aov:520,n:3},{aov:521,n:2},
+          {aov:522,n:3},{aov:523,n:1},{aov:524,n:1},{aov:525,n:2},{aov:526,n:2},{aov:528,n:1},{aov:529,n:3},
+          {aov:530,n:2},{aov:533,n:4},{aov:534,n:2},{aov:535,n:2},{aov:536,n:2},{aov:537,n:3},{aov:538,n:2},
+          {aov:539,n:2},{aov:541,n:1},{aov:542,n:2},{aov:543,n:2},{aov:544,n:1},{aov:545,n:3},{aov:546,n:1},
+          {aov:547,n:4},{aov:548,n:3},{aov:549,n:1},{aov:550,n:4},{aov:552,n:1},{aov:555,n:2},{aov:556,n:2},
+          {aov:557,n:1},{aov:559,n:2},{aov:561,n:2},{aov:562,n:4},{aov:563,n:1},{aov:564,n:1},{aov:566,n:2},
+          {aov:567,n:1},{aov:568,n:1},{aov:569,n:4},{aov:572,n:1},{aov:573,n:3},{aov:574,n:3},{aov:575,n:2},
+          {aov:576,n:3},{aov:577,n:1},{aov:578,n:3},{aov:579,n:1},{aov:581,n:1},{aov:583,n:1},{aov:584,n:1},
+          {aov:585,n:1},{aov:586,n:2},{aov:587,n:2},{aov:588,n:3},{aov:589,n:1},{aov:590,n:1},{aov:592,n:3},
+          {aov:593,n:2},{aov:594,n:1},{aov:595,n:1},{aov:596,n:1},{aov:597,n:1},{aov:599,n:1},{aov:600,n:3},
+          {aov:602,n:1},{aov:603,n:2},{aov:604,n:2},{aov:605,n:1},{aov:607,n:1},{aov:609,n:1},{aov:611,n:1},
+          {aov:612,n:2},{aov:613,n:1},{aov:614,n:1},{aov:616,n:1},{aov:619,n:2},{aov:620,n:1},{aov:621,n:1},
+          {aov:623,n:2},{aov:625,n:1},{aov:630,n:1},{aov:631,n:2},{aov:633,n:2},{aov:635,n:3},{aov:636,n:2},
+          {aov:637,n:2},{aov:638,n:4},{aov:639,n:1},{aov:640,n:1},{aov:642,n:2},{aov:643,n:1},{aov:645,n:1},
+          {aov:648,n:1},{aov:650,n:1},{aov:652,n:3},{aov:653,n:3},{aov:654,n:2},{aov:656,n:1},{aov:658,n:2},
+          {aov:659,n:1},{aov:660,n:3},{aov:661,n:1},{aov:662,n:2},{aov:664,n:1},{aov:665,n:1},{aov:668,n:2},
+          {aov:669,n:1},{aov:670,n:1},{aov:674,n:1},{aov:675,n:2},{aov:679,n:1},{aov:680,n:1},{aov:681,n:1},
+          {aov:683,n:1},{aov:686,n:2},{aov:688,n:3},{aov:690,n:1},{aov:691,n:1},{aov:692,n:1},{aov:693,n:2},
+          {aov:698,n:1},{aov:700,n:2},{aov:701,n:1},{aov:709,n:1},{aov:710,n:1},{aov:713,n:1},{aov:714,n:1},
+          {aov:715,n:2},{aov:716,n:2},{aov:718,n:1},{aov:719,n:1},{aov:721,n:1},{aov:730,n:1},{aov:735,n:1},
+          {aov:738,n:2},{aov:741,n:2},{aov:743,n:1},{aov:746,n:2},{aov:747,n:3},{aov:748,n:1},{aov:749,n:1},
+          {aov:751,n:1},{aov:752,n:1},{aov:754,n:1},{aov:757,n:1},{aov:760,n:2},{aov:767,n:1},{aov:773,n:1},
+          {aov:775,n:1},{aov:780,n:1},{aov:781,n:1},{aov:782,n:1},{aov:783,n:1},{aov:784,n:1},{aov:785,n:1},
+          {aov:788,n:3},{aov:794,n:1},{aov:795,n:1},{aov:797,n:1},{aov:799,n:2},{aov:802,n:1},{aov:803,n:1},
+          {aov:805,n:1},{aov:811,n:1},{aov:813,n:1},{aov:816,n:1},{aov:824,n:1},{aov:829,n:1},{aov:830,n:2},
+          {aov:833,n:1},{aov:836,n:2},{aov:839,n:4},{aov:841,n:1},{aov:842,n:1},{aov:844,n:1},{aov:845,n:1},
+          {aov:846,n:1},{aov:850,n:2},{aov:852,n:1},{aov:858,n:2},{aov:859,n:1},{aov:861,n:1},{aov:869,n:1},
+          {aov:872,n:1},{aov:877,n:1},{aov:882,n:1},{aov:883,n:2},{aov:884,n:1},{aov:887,n:1},{aov:889,n:1},
+          {aov:894,n:1},{aov:895,n:1},{aov:898,n:1},{aov:905,n:1},{aov:922,n:1},{aov:924,n:1},{aov:932,n:1},
+          {aov:938,n:1},{aov:939,n:1},{aov:940,n:1},{aov:944,n:1},{aov:945,n:1},{aov:947,n:1},{aov:951,n:1},
+          {aov:954,n:1},{aov:956,n:1},{aov:962,n:2},{aov:966,n:1},{aov:967,n:1},{aov:968,n:1},{aov:969,n:1},
+          {aov:970,n:1},{aov:977,n:1},{aov:978,n:1},{aov:981,n:1},{aov:985,n:1},{aov:988,n:1},{aov:989,n:2},
+          {aov:1002,n:1},{aov:1014,n:1},{aov:1017,n:1},{aov:1021,n:1},{aov:1028,n:1},{aov:1029,n:1},
+          {aov:1030,n:1},{aov:1032,n:1},{aov:1035,n:1},{aov:1040,n:1},{aov:1044,n:1},{aov:1057,n:1},
+          {aov:1058,n:1},{aov:1062,n:1},{aov:1063,n:1},{aov:1065,n:1},{aov:1078,n:1},{aov:1080,n:1},
+          {aov:1081,n:1},{aov:1082,n:1},{aov:1090,n:1},{aov:1096,n:1},{aov:1099,n:1},{aov:1114,n:1},
+          {aov:1115,n:1},{aov:1122,n:1},{aov:1123,n:1},{aov:1133,n:1},{aov:1143,n:2},{aov:1155,n:1},
+          {aov:1167,n:1},{aov:1170,n:1},{aov:1172,n:1},{aov:1174,n:1},{aov:1175,n:1},{aov:1179,n:2},
+          {aov:1201,n:1},{aov:1208,n:1},{aov:1210,n:1},{aov:1215,n:1},{aov:1224,n:1},{aov:1249,n:1},
+          {aov:1257,n:1},{aov:1271,n:2},{aov:1284,n:1},{aov:1311,n:1},{aov:1321,n:1},{aov:1323,n:1},
+          {aov:1335,n:1},{aov:1341,n:1},{aov:1372,n:1},{aov:1381,n:1},{aov:1387,n:1},{aov:1392,n:1},
+          {aov:1399,n:1},{aov:1404,n:1},{aov:1448,n:1},{aov:1460,n:1},{aov:1468,n:1},{aov:1484,n:1},
+          {aov:1503,n:1},{aov:1509,n:1},{aov:1521,n:1},{aov:1537,n:1},{aov:1542,n:1},{aov:1555,n:1},
+          {aov:1559,n:1},{aov:1567,n:1},{aov:1571,n:1},{aov:1572,n:1},{aov:1592,n:1},{aov:1594,n:1},
+          {aov:1609,n:1},{aov:1618,n:1},{aov:1630,n:1},{aov:1678,n:1},{aov:1682,n:1},{aov:1686,n:1},
+          {aov:1759,n:1},{aov:1770,n:1},{aov:1788,n:1},{aov:1796,n:1},{aov:1801,n:1},{aov:1831,n:1},
+          {aov:1847,n:1},{aov:1863,n:1},{aov:1877,n:1},{aov:1908,n:2},{aov:1920,n:1},{aov:1924,n:1},
+          {aov:2065,n:1},{aov:2069,n:1},{aov:2082,n:1},{aov:2182,n:1},{aov:2226,n:1},{aov:2316,n:1},
+          {aov:2406,n:1},{aov:2411,n:1},{aov:2438,n:1},{aov:2493,n:1},{aov:2637,n:1},{aov:2799,n:1},
+          {aov:2826,n:1},{aov:2830,n:1},{aov:2913,n:1},{aov:2972,n:1},{aov:3147,n:1},{aov:3335,n:2},
+          {aov:3388,n:1},{aov:3389,n:1},{aov:3553,n:1},{aov:4015,n:1},{aov:4257,n:1},{aov:4838,n:1},
+          {aov:4910,n:1},{aov:17796,n:1},{aov:55254,n:1}
+        ];
+
+const bsData = [
+          {bs:1,n:854310},{bs:2,n:1360832},{bs:3,n:915321},{bs:4,n:534043},{bs:5,n:349146},{bs:6,n:205171},
+          {bs:7,n:132980},{bs:8,n:91742},{bs:9,n:61872},{bs:10,n:47457},{bs:11,n:30181},{bs:12,n:22353},
+          {bs:13,n:16576},{bs:14,n:12394},{bs:15,n:10036},{bs:16,n:7591},{bs:17,n:6095},{bs:18,n:5074},
+          {bs:19,n:4150},{bs:20,n:3921},{bs:21,n:3024},{bs:22,n:2504},{bs:23,n:2158},{bs:24,n:1876},
+          {bs:25,n:1656},{bs:26,n:1370},{bs:27,n:1231},{bs:28,n:1129},{bs:29,n:988},{bs:30,n:944},
+          {bs:31,n:815},{bs:32,n:653},{bs:33,n:652},{bs:34,n:599},{bs:35,n:519},{bs:36,n:476},{bs:37,n:430},
+          {bs:38,n:415},{bs:39,n:358},{bs:40,n:357},{bs:41,n:312},{bs:42,n:267},{bs:43,n:290},{bs:44,n:263},
+          {bs:45,n:239},{bs:46,n:233},{bs:47,n:187},{bs:48,n:191},{bs:49,n:197},{bs:50,n:227},{bs:51,n:166},
+          {bs:52,n:146},{bs:53,n:156},{bs:54,n:138},{bs:55,n:145},{bs:56,n:118},{bs:57,n:124},{bs:58,n:88},
+          {bs:59,n:89},{bs:60,n:119},{bs:61,n:85},{bs:62,n:112},{bs:63,n:100},{bs:64,n:79},{bs:65,n:78},
+          {bs:66,n:75},{bs:67,n:68},{bs:68,n:66},{bs:69,n:40},{bs:70,n:74},{bs:71,n:70},{bs:72,n:67},
+          {bs:73,n:65},{bs:74,n:53},{bs:75,n:50},{bs:76,n:50},{bs:77,n:39},{bs:78,n:39},{bs:79,n:34},
+          {bs:80,n:41},{bs:81,n:45},{bs:82,n:33},{bs:83,n:43},{bs:84,n:29},{bs:85,n:37},{bs:86,n:28},
+          {bs:87,n:29},{bs:88,n:28},{bs:89,n:30},{bs:90,n:33},{bs:91,n:37},{bs:92,n:30},{bs:93,n:28},
+          {bs:94,n:30},{bs:95,n:22},{bs:96,n:29},{bs:97,n:16},{bs:98,n:24},{bs:99,n:23},{bs:100,n:54},
+          {bs:101,n:28},{bs:102,n:18},{bs:103,n:24},{bs:104,n:15},{bs:105,n:18},{bs:106,n:13},{bs:107,n:12},
+          {bs:108,n:21},{bs:109,n:14},{bs:110,n:18},{bs:111,n:11},{bs:112,n:16},{bs:113,n:18},{bs:114,n:21},
+          {bs:115,n:15},{bs:116,n:8},{bs:117,n:13},{bs:118,n:12},{bs:119,n:16},{bs:120,n:9},{bs:121,n:11},
+          {bs:122,n:11},{bs:123,n:11},{bs:124,n:6},{bs:125,n:8},{bs:126,n:19},{bs:127,n:1},{bs:128,n:6},
+          {bs:129,n:5},{bs:130,n:9},{bs:131,n:9},{bs:132,n:8},{bs:133,n:3},{bs:134,n:3},{bs:135,n:12},
+          {bs:136,n:2},{bs:137,n:9},{bs:138,n:13},{bs:139,n:4},{bs:140,n:6},{bs:141,n:7},{bs:142,n:5},
+          {bs:143,n:10},{bs:144,n:7},{bs:145,n:6},{bs:146,n:7},{bs:147,n:9},{bs:148,n:2},{bs:149,n:10},
+          {bs:150,n:8},{bs:151,n:8},{bs:152,n:9},{bs:153,n:5},{bs:154,n:2},{bs:155,n:4},{bs:156,n:3},
+          {bs:157,n:4},{bs:158,n:4},{bs:159,n:7},{bs:160,n:1},{bs:161,n:4},{bs:162,n:5},{bs:163,n:3},
+          {bs:164,n:2},{bs:165,n:4},{bs:166,n:4},{bs:167,n:6},{bs:168,n:3},{bs:169,n:5},{bs:170,n:4},
+          {bs:171,n:2},{bs:172,n:3},{bs:173,n:3},{bs:174,n:4},{bs:175,n:4},{bs:176,n:4},{bs:177,n:3},
+          {bs:178,n:1},{bs:179,n:3},{bs:180,n:2},{bs:181,n:6},{bs:182,n:1},{bs:183,n:3},{bs:184,n:4},
+          {bs:185,n:2},{bs:186,n:3},{bs:187,n:3},{bs:188,n:3},{bs:189,n:2},{bs:190,n:2},{bs:191,n:4},
+          {bs:195,n:3},{bs:196,n:2},{bs:198,n:3},{bs:199,n:4},{bs:200,n:15},{bs:209,n:1},{bs:213,n:1},
+          {bs:667,n:1},{bs:55254,n:1}
+        ];
+
+        const SEG_NAMES = [
+          'Champion', 'Loyal Customer', 'Potential Loyalist', 'New Customers',
+          'First-Purchasing', 'Customers Low Frequency', 'Promising', 'Need Attention',
+          'About To Sleep', 'Cannot Lose Them', 'At Risk', 'Hibernating', 'Lost Customers'
+        ];
+
+        const SEG_COLORS = [
+          '#2563eb','#3b82f6','#60a5fa','#22c55e','#6ee7b7','#14b8a6','#a78bfa',
+          '#fb923c','#facc15','#f87171','#dc2626','#b91c1c','#991b1b'
+        ];
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        let segments = {
+          r: [[0,0],[0,0],[0,1],[0,1],[0,0],[0,1],[0,2],[1,3],[3,7],[20,67],[5,19],[5,19],[15,67]],
+          f: [[90,100],[75,100],[50,100],[1,3],[1,1],[1,5],[1,10],[5,15],[1,5],[50,100],[30,60],[1,12],[1,10]],
+          aov: [[10,50],[7,50],[5,50],[1,5],[1,3],[1,3],[2,6],[2,5],[1,3],[8,50],[4,10],[1,3],[1,2]],
+          bs: [[8,30],[6,30],[4,30],[1,3],[1,2],[1,2],[2,5],[2,4],[1,2],[6,30],[3,8],[1,3],[1,2]]
+        };
+
+        let charts = {};
+        let currentTab = 'r';
+
+        // View range filter state per dimension (null = show all)
+        let viewRange = { r: null, f: null, aov: [1, 50], bs: [1, 50] };
+
+        // Quick zoom presets per dimension (calculated from data percentiles)
+        const ZOOM_PRESETS = {
+            r:   { p95: [0, 54],  p99: [0, 63],  full: null },
+            f:   { p95: [1, 75],  p99: [1, 98],  full: null },
+            aov: { p95: [1, 14],  p99: [1, 36],  full: null },
+            bs:  { p95: [1, 9],   p99: [1, 17],  full: null }
+        };
+
+        // ============================================================
+        // UTILITIES
+        // ============================================================
+        function getDataForDimension(dim) {
+            const map = { r: rData, f: fData, aov: aovData, bs: bsData };
+            return map[dim];
+        }
+
+        function getMetricKey(dim) {
+            const map = { r: 'r', f: 'f', aov: 'aov', bs: 'bs' };
+            return map[dim];
+        }
+
+        function getTotalUsers(data) {
+            return data.reduce((sum, item) => sum + item.n, 0);
+        }
+
+        function getStats(data) {
+            const key = Object.keys(data[0]).find(k => k !== 'n');
+            // Sort by value
+            const sorted = [...data].sort((a, b) => a[key] - b[key]);
+            const total = sorted.reduce((s, d) => s + d.n, 0);
+            const min = sorted[0][key];
+            const max = sorted[sorted.length - 1][key];
+
+            function percentile(p) {
+                const target = total * p;
+                let cum = 0;
+                for (const d of sorted) { cum += d.n; if (cum >= target) return d[key]; }
+                return max;
+            }
+
+            return { min, max, median: percentile(0.5), p25: percentile(0.25), p75: percentile(0.75), total };
+        }
+
+        function formatNumber(n) {
+            if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+            return n.toString();
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function roundPercent(num) {
+            return Math.round(num * 100) / 100;
+        }
+
+        // ============================================================
+        // SEGMENT COVERAGE & COUNTING
+        // ============================================================
+        function countUsersInRanges(dim, fromVal, toVal) {
+            const data = getDataForDimension(dim);
+            const key = getMetricKey(dim);
+            let count = 0;
+            data.forEach(item => {
+                const val = item[key];
+                if (val >= fromVal && val <= toVal) {
+                    count += item.n;
+                }
+            });
+            return count;
+        }
+
+        function getSegmentColor(dim, value) {
+            const ranges = segments[dim];
+            for (let i = 0; i < ranges.length; i++) {
+                if (value >= ranges[i][0] && value <= ranges[i][1]) {
+                    return SEG_COLORS[i];
+                }
+            }
+            return '#e5e5e5';
+        }
+
+        // ============================================================
+        // CHART RENDERING
+        // ============================================================
+        // Segment zone overlay plugin — numbered circles, dashed boundaries, color strips
+        function makeSegZonePlugin(dim) {
+            return {
+                id: 'segZones_' + dim,
+                afterDatasetsDraw(chart) {
+                    const { ctx, chartArea: { left, right, top, bottom }, scales: { x } } = chart;
+                    if (!x) return;
+                    const ranges = segments[dim];
+                    const data = getDataForDimension(dim);
+                    const key = getMetricKey(dim);
+                    // Estimate bar width from chart
+                    const firstVal = data[0][key], secondVal = data.length > 1 ? data[1][key] : firstVal + 1;
+                    const barW = x.getPixelForValue(secondVal) - x.getPixelForValue(firstVal);
+
+                    ranges.forEach((range, i) => {
+                        const col = SEG_COLORS[i % SEG_COLORS.length];
+                        const x1 = x.getPixelForValue(range[0]) - barW / 2;
+                        const x2 = x.getPixelForValue(range[1]) + barW / 2;
+                        const cL = Math.max(x1, left), cR = Math.min(x2, right);
+                        if (cR <= cL) return;
+                        ctx.save();
+                        // Dashed boundary lines
+                        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
+                        ctx.setLineDash([4, 3]);
+                        ctx.beginPath(); ctx.moveTo(cL, top); ctx.lineTo(cL, bottom); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(cR, top); ctx.lineTo(cR, bottom); ctx.stroke();
+                        ctx.setLineDash([]);
+                        // Top color strip
+                        ctx.globalAlpha = 0.9; ctx.fillStyle = col;
+                        ctx.fillRect(cL, top - 4, cR - cL, 3);
+                        ctx.restore();
+                        // Numbered marker circle at center-top
+                        const cx = (cL + cR) / 2;
+                        const circleY = top - 12;
+                        ctx.save();
+                        ctx.fillStyle = col;
+                        ctx.beginPath(); ctx.arc(cx, circleY, 8, 0, Math.PI * 2); ctx.fill();
+                        ctx.font = 'bold 8px Inter, sans-serif';
+                        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText((i + 1).toString(), cx, circleY);
+                        ctx.restore();
+                    });
+                }
+            };
+        }
+
+        // ============================================================
+        // CHART FILTER BAR
+        // ============================================================
+        function renderFilterBar(dim) {
+            const bar = document.getElementById(`filter-${dim}`);
+            const data = getDataForDimension(dim);
+            const key = getMetricKey(dim);
+            const stats = getStats(data);
+            const vr = viewRange[dim] || [stats.min, stats.max];
+            const dimLabel = { r: 'Recency', f: 'Frequency', aov: 'AOV', bs: 'BasketSize' }[dim];
+
+            // Count users in current view range
+            const viewUsers = countUsersInRanges(dim, vr[0], vr[1]);
+            const totalUsers = getTotalUsers(data);
+            const viewPct = roundPercent((viewUsers / totalUsers) * 100);
+
+            // Determine which preset is active
+            const presets = ZOOM_PRESETS[dim];
+            const isPreset = (key) => {
+                if (key === 'full') return !viewRange[dim];
+                const p = presets[key];
+                return viewRange[dim] && viewRange[dim][0] === p[0] && viewRange[dim][1] === p[1];
+            };
+
+            bar.innerHTML = `
+                <label>🔍 View</label>
+                <input type="number" class="filter-input" id="filter-min-${dim}" value="${vr[0]}" min="${stats.min}" max="${stats.max}"
+                       oninput="updateViewRange('${dim}', parseInt(this.value), null)">
+                <span style="color:var(--color-text-tertiary)">—</span>
+                <input type="number" class="filter-input" id="filter-max-${dim}" value="${vr[1]}" min="${stats.min}" max="${stats.max}"
+                       oninput="updateViewRange('${dim}', null, parseInt(this.value))">
+                <div class="filter-slider-wrap">
+                    <div class="range-track"></div>
+                    <div class="range-fill" id="filter-fill-${dim}"></div>
+                    <input type="range" min="${stats.min}" max="${stats.max}" value="${vr[0]}"
+                           oninput="updateViewRange('${dim}', parseInt(this.value), null)">
+                    <input type="range" min="${stats.min}" max="${stats.max}" value="${vr[1]}"
+                           oninput="updateViewRange('${dim}', null, parseInt(this.value))">
+                </div>
+                <span class="filter-range-label">${formatNumber(viewUsers)} (${viewPct}%)</span>
+                <div class="filter-btn-group">
+                    <button class="filter-btn ${isPreset('p95') ? 'active' : ''}" onclick="applyZoomPreset('${dim}','p95')">P95</button>
+                    <button class="filter-btn ${isPreset('p99') ? 'active' : ''}" onclick="applyZoomPreset('${dim}','p99')">P99</button>
+                    <button class="filter-btn ${isPreset('full') ? 'active' : ''}" onclick="applyZoomPreset('${dim}','full')">All</button>
+                </div>
+            `;
+            syncFilterSlider(dim);
+        }
+
+        function syncFilterSlider(dim) {
+            const wrap = document.querySelector(`#filter-${dim} .filter-slider-wrap`);
+            if (!wrap) return;
+            const fill = wrap.querySelector('.range-fill');
+            const inputs = wrap.querySelectorAll('input[type="range"]');
+            if (!inputs[0] || !inputs[1] || !fill) return;
+            const mn = parseInt(inputs[0].min), mx = parseInt(inputs[0].max);
+            const range = mx - mn || 1;
+            const fromPct = ((parseInt(inputs[0].value) - mn) / range) * 100;
+            const toPct = ((parseInt(inputs[1].value) - mn) / range) * 100;
+            fill.style.left = Math.min(fromPct, toPct) + '%';
+            fill.style.right = (100 - Math.max(fromPct, toPct)) + '%';
+        }
+
+        function updateViewRange(dim, newMin, newMax) {
+            const data = getDataForDimension(dim);
+            const stats = getStats(data);
+            const vr = viewRange[dim] || [stats.min, stats.max];
+            if (newMin !== null && !isNaN(newMin)) vr[0] = Math.max(stats.min, Math.min(newMin, stats.max));
+            if (newMax !== null && !isNaN(newMax)) vr[1] = Math.max(stats.min, Math.min(newMax, stats.max));
+            viewRange[dim] = vr;
+
+            // Update the input fields to stay in sync
+            const minInput = document.getElementById(`filter-min-${dim}`);
+            const maxInput = document.getElementById(`filter-max-${dim}`);
+            if (minInput && document.activeElement !== minInput) minInput.value = vr[0];
+            if (maxInput && document.activeElement !== maxInput) maxInput.value = vr[1];
+
+            // Update slider positions
+            const wrap = document.querySelector(`#filter-${dim} .filter-slider-wrap`);
+            if (wrap) {
+                const sliders = wrap.querySelectorAll('input[type="range"]');
+                if (sliders[0] && document.activeElement !== sliders[0]) sliders[0].value = vr[0];
+                if (sliders[1] && document.activeElement !== sliders[1]) sliders[1].value = vr[1];
+            }
+            syncFilterSlider(dim);
+
+            // Update user count label
+            const viewUsers = countUsersInRanges(dim, vr[0], vr[1]);
+            const totalUsers = getTotalUsers(data);
+            const viewPct = roundPercent((viewUsers / totalUsers) * 100);
+            const label = document.querySelector(`#filter-${dim} .filter-range-label`);
+            if (label) label.textContent = `${formatNumber(viewUsers)} (${viewPct}%)`;
+
+            // Re-render chart only (not the whole page)
+            renderChart(dim);
+        }
+
+        function resetViewRange(dim) {
+            viewRange[dim] = null;
+            renderFilterBar(dim);
+            renderChart(dim);
+        }
+
+        function applyZoomPreset(dim, key) {
+            const preset = ZOOM_PRESETS[dim][key];
+            viewRange[dim] = preset ? [...preset] : null;
+            renderFilterBar(dim);
+            renderChart(dim);
+        }
+
+        function renderChart(dim) {
+            const data = getDataForDimension(dim);
+            const ctx = document.getElementById(`chart-${dim}`).getContext('2d');
+            const key = getMetricKey(dim);
+            const stats = getStats(data);
+
+            // Apply view range filter
+            const vr = viewRange[dim] || [stats.min, stats.max];
+            const filteredData = data.filter(item => item[key] >= vr[0] && item[key] <= vr[1]);
+
+            const labels = filteredData.map(item => item[key]);
+            const values = filteredData.map(item => item.n);
+            const colors = values.map((_, idx) => getSegmentColor(dim, labels[idx]));
+
+            const total = getTotalUsers(data); // total is always full dataset for % calc
+
+            if (charts[dim]) {
+                charts[dim].destroy();
+            }
+
+            charts[dim] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Users',
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c === '#e5e5e5' ? '#d4d4d4' : c),
+                        borderWidth: 1,
+                        borderRadius: 2
+                    }]
+                },
+                plugins: [makeSegZonePlugin(dim)],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 200 },
+                    layout: { padding: { top: 30 } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#fff', titleColor: '#1f2937', bodyColor: '#6b7280',
+                            borderColor: '#e5e7eb', borderWidth: 1, cornerRadius: 8,
+                            padding: 12,
+                            titleFont: { family: 'Inter', weight: '600', size: 12 },
+                            bodyFont: { family: 'JetBrains Mono', size: 11 },
+                            callbacks: {
+                                title: (items) => `${dim.toUpperCase()} = ${items[0].label}`,
+                                label: (item) => `${formatNumber(item.parsed.y)} users  (${roundPercent((item.parsed.y / total) * 100)}%)`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f5f5f5' },
+                            border: { display: false },
+                            ticks: { font: { family: 'JetBrains Mono', size: 9 }, color: '#bbb', callback: (val) => formatNumber(val) }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'JetBrains Mono', size: 8 }, color: '#bbb', maxRotation: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // SEGMENT BUILDER TABLE
+        // ============================================================
+        function renderBuilderTable(dim) {
+            const table = document.getElementById(`builder-${dim}`);
+            const data = getDataForDimension(dim);
+            const key = getMetricKey(dim);
+            const stats = getStats(data);
+
+            let html = `
+                <thead>
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th style="width:20px"></th>
+                        <th style="width:150px">Segment</th>
+                        <th style="width:70px">From</th>
+                        <th style="width:70px">To</th>
+                        <th style="width:200px">Range</th>
+                        <th style="width:80px">Users</th>
+                        <th style="width:60px">%</th>
+                        <th style="width:60px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            segments[dim].forEach((range, i) => {
+                const count = countUsersInRanges(dim, range[0], range[1]);
+                const total = getTotalUsers(data);
+                const pct = roundPercent((count / total) * 100);
+
+                html += `
+                    <tr>
+                        <td style="text-align:center; font-weight:600;">${i + 1}</td>
+                        <td><span class="color-indicator" style="background:${SEG_COLORS[i]}"></span></td>
+                        <td>
+                            <input type="text" class="segment-name-input" value="${SEG_NAMES[i]}"
+                                   oninput="SEG_NAMES[${i}] = this.value; renderAll()">
+                        </td>
+                        <td>
+                            <input type="number" class="range-input" value="${range[0]}"
+                                   oninput="segments.${dim}[${i}][0] = parseInt(this.value)||0; renderAll()">
+                        </td>
+                        <td>
+                            <input type="number" class="range-input" value="${range[1]}"
+                                   oninput="segments.${dim}[${i}][1] = parseInt(this.value)||0; renderAll()">
+                        </td>
+                        <td>
+                            <div class="range-slider-container">
+                                <div class="range-slider">
+                                    <div class="range-track"></div>
+                                    <input type="range" min="${stats.min}" max="${stats.max}" value="${range[0]}"
+                                           oninput="segments.${dim}[${i}][0] = parseInt(this.value); renderAll()"
+                                           style="color:${SEG_COLORS[i]}">
+                                    <input type="range" min="${stats.min}" max="${stats.max}" value="${range[1]}"
+                                           oninput="segments.${dim}[${i}][1] = parseInt(this.value); renderAll()"
+                                           style="color:${SEG_COLORS[i]}">
+                                    <div class="range-fill" style="background:${SEG_COLORS[i]}"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="stat-count">${formatNumber(count)}</span></td>
+                        <td><span class="stat-percent">${pct}%</span></td>
+                        <td>
+                            <div class="mini-bar" style="color:${SEG_COLORS[i]}">
+                                <div class="mini-bar-fill" style="width:${pct}%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody>`;
+            table.innerHTML = html;
+            syncRangeSliders(dim);
+        }
+
+        function syncRangeSliders(dim) {
+            const sliders = document.querySelectorAll(`#builder-${dim} .range-slider`);
+
+            sliders.forEach((slider, i) => {
+                const inputs = slider.querySelectorAll('input[type="range"]');
+                const fill = slider.querySelector('.range-fill');
+                if (!inputs[0] || !inputs[1] || !fill) return;
+
+                const minVal = parseInt(inputs[0].min);
+                const maxVal = parseInt(inputs[0].max);
+                const range = maxVal - minVal || 1;
+                const from = parseInt(inputs[0].value);
+                const to = parseInt(inputs[1].value);
+
+                const fromPct = ((from - minVal) / range) * 100;
+                const toPct = ((to - minVal) / range) * 100;
+
+                fill.style.left = Math.min(fromPct, toPct) + '%';
+                fill.style.right = (100 - Math.max(fromPct, toPct)) + '%';
+            });
+        }
+
+        // ============================================================
+        // STATS BANNER
+        // ============================================================
+        function renderStats(dim) {
+            const data = getDataForDimension(dim);
+            const stats = getStats(data);
+            const total = getTotalUsers(data);
+
+            const banner = document.getElementById(`stats-${dim}`);
+            banner.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value">${formatNumber(total)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Median</div>
+                    <div class="stat-value">${stats.median}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">P25</div>
+                    <div class="stat-value">${stats.p25}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">P75</div>
+                    <div class="stat-value">${stats.p75}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Range</div>
+                    <div class="stat-value">${stats.min} - ${stats.max}</div>
+                </div>
+            `;
+        }
+
+        // ============================================================
+        // SUMMARY TAB
+        // ============================================================
+        function renderSummaryTable() {
+            const table = document.getElementById('summary-table');
+            let html = `
+                <thead>
+                    <tr>
+                        <th style="width:140px">Segment</th>
+                        <th style="width:120px">R Range</th>
+                        <th style="width:120px">F Range</th>
+                        <th style="width:120px">AOV Range</th>
+                        <th style="width:120px">BS Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            for (let i = 0; i < SEG_NAMES.length; i++) {
+                const rRange = segments.r[i];
+                const fRange = segments.f[i];
+                const aovRange = segments.aov[i];
+                const bsRange = segments.bs[i];
+
+                html += `
+                    <tr>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="color-indicator" style="background:${SEG_COLORS[i]}"></span>
+                                <span style="font-weight:500;">${SEG_NAMES[i]}</span>
+                            </div>
+                        </td>
+                        <td><span class="range-cell">${rRange[0]} - ${rRange[1]}</span></td>
+                        <td><span class="range-cell">${fRange[0]} - ${fRange[1]}</span></td>
+                        <td><span class="range-cell">${aovRange[0]} - ${aovRange[1]}</span></td>
+                        <td><span class="range-cell">${bsRange[0]} - ${bsRange[1]}</span></td>
+                    </tr>
+                `;
+            }
+
+            html += `</tbody>`;
+            table.innerHTML = html;
+        }
+
+        // ============================================================
+        // SEGMENT LEGEND (below chart)
+        // ============================================================
+
+        // ============================================================
+        // MAIN RENDER FUNCTION
+        // ============================================================
+        function renderAll() {
+            const dims = ['r', 'f', 'aov', 'bs'];
+            dims.forEach(dim => {
+                renderStats(dim);
+                renderFilterBar(dim);
+                renderChart(dim);
+                renderBuilderTable(dim);
+            });
+            renderSummaryTable();
+        }
+
+        // ============================================================
+        // TAB SWITCHING
+        // ============================================================
+        function switchTab(tab, event) {
+            event.preventDefault();
+            currentTab = tab;
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ============================================================
+        // SAVE / LOAD / EXPORT / IMPORT
+        // ============================================================
+        function saveConfig() {
+            const config = {
+                timestamp: new Date().toISOString(),
+                segments: segments,
+                names: SEG_NAMES.slice()
+            };
+            const saves = JSON.parse(localStorage.getItem('rfmSaves') || '{}');
+            const key = `save_${Date.now()}`;
+            saves[key] = config;
+            localStorage.setItem('rfmSaves', JSON.stringify(saves));
+            updateLoadMenu();
+            showToast('Configuration saved');
+        }
+
+        function loadConfig(key) {
+            const saves = JSON.parse(localStorage.getItem('rfmSaves') || '{}');
+            const config = saves[key];
+            if (config) {
+                segments = JSON.parse(JSON.stringify(config.segments));
+                config.names.forEach((name, i) => SEG_NAMES[i] = name);
+                renderAll();
+                showToast('Configuration loaded');
+            }
+        }
+
+        function deleteConfig(key) {
+            const saves = JSON.parse(localStorage.getItem('rfmSaves') || '{}');
+            delete saves[key];
+            localStorage.setItem('rfmSaves', JSON.stringify(saves));
+            updateLoadMenu();
+            showToast('Configuration deleted');
+        }
+
+        function updateLoadMenu() {
+            const menu = document.getElementById('loadMenu');
+            const saves = JSON.parse(localStorage.getItem('rfmSaves') || '{}');
+            menu.innerHTML = '';
+
+            if (Object.keys(saves).length === 0) {
+                menu.innerHTML = '<button style="opacity:0.5; cursor:default; padding:16px;" onmousedown="event.stopPropagation()">No saved configs</button>';
+                return;
+            }
+
+            Object.entries(saves).forEach(([key, config]) => {
+                const date = new Date(config.timestamp).toLocaleString();
+                const btn = document.createElement('button');
+                btn.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <span>${date}</span>
+                        <span onclick="deleteConfig('${key}'); event.stopPropagation(); event.preventDefault();" style="opacity:0.5; cursor:pointer;">×</span>
+                    </div>
+                `;
+                btn.onclick = (e) => { loadConfig(key); e.preventDefault(); };
+                menu.appendChild(btn);
+            });
+        }
+
+        function exportJSON() {
+            const config = { segments, names: SEG_NAMES.slice() };
+            const json = JSON.stringify(config, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rfm-config-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            showToast('Configuration exported');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    segments = JSON.parse(JSON.stringify(config.segments));
+                    config.names.forEach((name, i) => SEG_NAMES[i] = name);
+                    renderAll();
+                    showToast('Configuration imported');
+                } catch (err) {
+                    showToast('Failed to import config', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportPython() {
+            let py = '# === Exported from RFM Dashboard v4.1 ===\n';
+            py += '# Date: ' + new Date().toISOString().slice(0,10) + '\n\n';
+            py += 'SEGMENT_CONFIG = [\n';
+            for (let i = 0; i < SEG_NAMES.length; i++) {
+                py += '    {\n';
+                py += `        "name": "${SEG_NAMES[i]}",\n`;
+                py += `        "priority": ${i + 1},\n`;
+                py += '        "conditions": {\n';
+                py += `            "diff_Round_Buy_R": [${segments.r[i][0]}, ${segments.r[i][1]}],\n`;
+                py += `            "Frequency":        [${segments.f[i][0]}, ${segments.f[i][1]}],\n`;
+                py += `            "AOV_Size_M":       [${segments.aov[i][0]}, ${segments.aov[i][1]}],\n`;
+                py += `            "Basket_Size_M":    [${segments.bs[i][0]}, ${segments.bs[i][1]}],\n`;
+                py += '        }\n';
+                py += '    },\n';
+            }
+            py += ']\n';
+            navigator.clipboard.writeText(py).then(() => {
+                showToast('Python config copied to clipboard');
+            }).catch(() => {
+                const blob = new Blob([py], { type: 'text/plain' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = 'segment_config.py'; a.click();
+                showToast('Downloaded segment_config.py');
+            });
+        }
+
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAll();
+        });
+    </script>
+</body>
+</html>
