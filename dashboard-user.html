@@ -448,6 +448,50 @@
         </div>
     </main>
 
+    <!-- AOV Custom Bins Modal -->
+    <div id="aov-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999; display:none; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:12px; padding:28px 32px; max-width:520px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.2); position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:16px; font-weight:600;">Custom AOV Range</h3>
+                <button onclick="closeAovModal()" style="border:none; background:none; font-size:20px; cursor:pointer; color:var(--color-text-tertiary); padding:4px 8px;">&times;</button>
+            </div>
+            <p style="font-size:13px; color:var(--color-text-secondary); margin-bottom:16px;">
+                Add ranges to create custom groups. Each row is one bar in the chart.
+            </p>
+            <div id="aov-modal-rows" style="max-height:320px; overflow-y:auto; margin-bottom:16px;"></div>
+            <div style="display:flex; gap:8px; margin-bottom:20px;">
+                <button onclick="addAovRow()" style="padding:6px 14px; font-size:12px; border-style:dashed;">+ Add Range</button>
+                <button onclick="addAovSingleRows()" style="padding:6px 14px; font-size:12px; border-style:dashed;">+ Add Singles (1-10)</button>
+            </div>
+            <div style="display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--color-border); padding-top:16px;">
+                <button onclick="closeAovModal()" style="padding:8px 20px;">Cancel</button>
+                <button class="primary" onclick="applyAovModal()" style="padding:8px 20px;">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BS Custom Bins Modal -->
+    <div id="bs-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999; display:none; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:12px; padding:28px 32px; max-width:520px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.2); position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:16px; font-weight:600;">Custom Basket Size Range</h3>
+                <button onclick="closeBsModal()" style="border:none; background:none; font-size:20px; cursor:pointer; color:var(--color-text-tertiary); padding:4px 8px;">&times;</button>
+            </div>
+            <p style="font-size:13px; color:var(--color-text-secondary); margin-bottom:16px;">
+                Add ranges to create custom groups. Each row is one bar in the chart.
+            </p>
+            <div id="bs-modal-rows" style="max-height:320px; overflow-y:auto; margin-bottom:16px;"></div>
+            <div style="display:flex; gap:8px; margin-bottom:20px;">
+                <button onclick="addBsRow()" style="padding:6px 14px; font-size:12px; border-style:dashed;">+ Add Range</button>
+                <button onclick="addBsSingleRows()" style="padding:6px 14px; font-size:12px; border-style:dashed;">+ Add Singles (1-10)</button>
+            </div>
+            <div style="display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--color-border); padding-top:16px;">
+                <button onclick="closeBsModal()" style="padding:8px 20px;">Cancel</button>
+                <button class="primary" onclick="applyBsModal()" style="padding:8px 20px;">Apply</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // roundRect polyfill
         if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -475,10 +519,40 @@
         let roundFilterTo = Math.min(23, roundDates.length - 1);
 
         let rData = [], fData = [], aovData = [], bsData = [];
+        let aovRawMerged = {};
+        let bsRawMerged = {};
 
         let charts = {};
         let currentTab = 'r';
-        let viewRange = { r: null, f: null, aov: [1, 20], bs: [1, 20] };
+        let viewRange = { r: null, f: null, aov: null, bs: null };
+
+        // AOV bin definitions
+        let aovBinStr = '1,2,3,4,5,6,7,8,9,10,11-20,21-50,51-100,101-200,201-500,501-1000,1001-10000,10000+';
+        let aovBinParsed = [];
+        let aovBinLabels = [];
+
+        // BS bin definitions
+        let bsBinStr = '1,2,3,4,5,6,7,8,9,10,11-20,21-50,51-100,101-200,201+';
+        let bsBinParsed = [];
+        let bsBinLabels = [];
+
+        function parseAovBins(str) {
+            const parts = str.split(',').map(s => s.trim()).filter(s => s);
+            const bins = [];
+            for (const p of parts) {
+                if (p.endsWith('+')) {
+                    const min = parseInt(p);
+                    bins.push({ label: p, min, max: Infinity });
+                } else if (p.includes('-')) {
+                    const [a, b] = p.split('-').map(Number);
+                    bins.push({ label: p, min: a, max: b });
+                } else {
+                    const v = parseInt(p);
+                    bins.push({ label: p, min: v, max: v });
+                }
+            }
+            return bins;
+        }
         let ZOOM_PRESETS = { r: {}, f: {}, aov: {}, bs: {} };
         let showOthersBar = true;
 
@@ -579,6 +653,198 @@
             renderAll();
         }
 
+        function applyAovBins(str) {
+            aovBinStr = str;
+            rebuildFromRoundFilter();
+            renderStats('aov');
+            renderChart('aov');
+        }
+
+        // AOV Modal
+        let aovModalRows = []; // [{min, max}]
+
+        function openAovModal() {
+            // Parse current bins into rows
+            aovModalRows = parseAovBins(aovBinStr).map(b => ({
+                min: b.min,
+                max: b.max === Infinity ? '' : b.max
+            }));
+            renderAovModalRows();
+            document.getElementById('aov-modal').style.display = 'flex';
+        }
+
+        function closeAovModal() {
+            document.getElementById('aov-modal').style.display = 'none';
+        }
+
+        function getAovBinCount(min, max) {
+            let count = 0;
+            const mx = (max === '' || max === undefined) ? Infinity : max;
+            for (const [k, v] of Object.entries(aovRawMerged)) {
+                const val = parseInt(k);
+                if (val >= min && val <= mx) count += v;
+            }
+            return count;
+        }
+
+        function getAovTotalCount() {
+            let total = 0;
+            for (const v of Object.values(aovRawMerged)) total += v;
+            return total;
+        }
+
+        function renderAovModalRows() {
+            const container = document.getElementById('aov-modal-rows');
+            const total = getAovTotalCount();
+            container.innerHTML = aovModalRows.map((row, i) => {
+                const count = getAovBinCount(row.min, row.max);
+                const pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
+                const label = row.max === '' ? row.min + '+' : (row.min === row.max ? String(row.min) : row.min + '-' + row.max);
+                return `
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="font-size:12px; color:var(--color-text-tertiary); width:24px; text-align:right; flex-shrink:0;">${i + 1}.</span>
+                    <input type="number" value="${row.min}" min="1" placeholder="From"
+                           onchange="aovModalRows[${i}].min=parseInt(this.value)||1; renderAovModalRows()"
+                           style="width:80px; padding:6px 10px; border:1px solid var(--color-border); border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:13px; text-align:center;">
+                    <span style="color:var(--color-text-tertiary);">to</span>
+                    <input type="number" value="${row.max}" min="1" placeholder="empty = +"
+                           onchange="aovModalRows[${i}].max=this.value?parseInt(this.value):''; renderAovModalRows()"
+                           style="width:80px; padding:6px 10px; border:1px solid var(--color-border); border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:13px; text-align:center;">
+                    <span style="font-family:var(--font-mono); font-size:11px; color:var(--color-text); font-weight:500; min-width:50px;">${label}</span>
+                    <span style="font-family:var(--font-mono); font-size:11px; color:var(--color-primary); font-weight:600; min-width:60px; text-align:right;">${formatNumber(count)}</span>
+                    <span style="font-family:var(--font-mono); font-size:11px; color:var(--color-text-secondary); min-width:45px; text-align:right;">${pct}%</span>
+                    <button onclick="aovModalRows.splice(${i},1); renderAovModalRows()" style="padding:3px 10px; font-size:11px; color:var(--color-error); border-color:var(--color-error); flex-shrink:0;">Delete</button>
+                </div>`;
+            }).join('');
+        }
+
+        function addAovRow() {
+            const last = aovModalRows.length > 0 ? aovModalRows[aovModalRows.length - 1] : { min: 0, max: 0 };
+            const nextMin = (last.max || last.min) + 1;
+            aovModalRows.push({ min: nextMin, max: '' });
+            renderAovModalRows();
+            // Scroll to bottom
+            const container = document.getElementById('aov-modal-rows');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addAovSingleRows() {
+            aovModalRows = [];
+            for (let i = 1; i <= 10; i++) aovModalRows.push({ min: i, max: i });
+            renderAovModalRows();
+        }
+
+        function applyAovModal() {
+            const parts = aovModalRows.map(r => {
+                if (r.max === '' || r.max === undefined) return r.min + '+';
+                if (r.min === r.max) return String(r.min);
+                return r.min + '-' + r.max;
+            });
+            applyAovBins(parts.join(','));
+            closeAovModal();
+        }
+
+        function resetAovBins() {
+            aovBinStr = '1,2,3,4,5,6,7,8,9,10,11-20,21-50,51-100,101-200,201-500,501-1000,1001-10000,10000+';
+            rebuildFromRoundFilter();
+            renderStats('aov');
+            renderChart('aov');
+        }
+
+        // BS Bins
+        function applyBsBins(str) {
+            bsBinStr = str;
+            rebuildFromRoundFilter();
+            renderStats('bs');
+            renderChart('bs');
+        }
+
+        function resetBsBins() {
+            bsBinStr = '1,2,3,4,5,6,7,8,9,10,11-20,21-50,51-100,101-200,201+';
+            rebuildFromRoundFilter();
+            renderStats('bs');
+            renderChart('bs');
+        }
+
+        let bsModalRows = [];
+
+        function openBsModal() {
+            bsModalRows = parseAovBins(bsBinStr).map(b => ({
+                min: b.min, max: b.max === Infinity ? '' : b.max
+            }));
+            renderBsModalRows();
+            document.getElementById('bs-modal').style.display = 'flex';
+        }
+
+        function closeBsModal() {
+            document.getElementById('bs-modal').style.display = 'none';
+        }
+
+        function getBsBinCount(min, max) {
+            let count = 0;
+            const mx = (max === '' || max === undefined) ? Infinity : max;
+            for (const [k, v] of Object.entries(bsRawMerged)) {
+                const val = parseInt(k);
+                if (val >= min && val <= mx) count += v;
+            }
+            return count;
+        }
+
+        function getBsTotalCount() {
+            let total = 0;
+            for (const v of Object.values(bsRawMerged)) total += v;
+            return total;
+        }
+
+        function renderBsModalRows() {
+            const container = document.getElementById('bs-modal-rows');
+            const total = getBsTotalCount();
+            container.innerHTML = bsModalRows.map((row, i) => {
+                const count = getBsBinCount(row.min, row.max);
+                const pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
+                const label = row.max === '' ? row.min + '+' : (row.min === row.max ? String(row.min) : row.min + '-' + row.max);
+                return `
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="font-size:12px; color:var(--color-text-tertiary); width:24px; text-align:right; flex-shrink:0;">${i + 1}.</span>
+                    <input type="number" value="${row.min}" min="1" placeholder="From"
+                           onchange="bsModalRows[${i}].min=parseInt(this.value)||1; renderBsModalRows()"
+                           style="width:80px; padding:6px 10px; border:1px solid var(--color-border); border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:13px; text-align:center;">
+                    <span style="color:var(--color-text-tertiary);">to</span>
+                    <input type="number" value="${row.max}" min="1" placeholder="empty = +"
+                           onchange="bsModalRows[${i}].max=this.value?parseInt(this.value):''; renderBsModalRows()"
+                           style="width:80px; padding:6px 10px; border:1px solid var(--color-border); border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:13px; text-align:center;">
+                    <span style="font-family:var(--font-mono); font-size:11px; color:var(--color-text); font-weight:500; min-width:50px;">${label}</span>
+                    <span style="font-family:var(--font-mono); font-size:11px; color:var(--color-primary); font-weight:600; min-width:60px; text-align:right;">${formatNumber(count)}</span>
+                    <span style="font-family:var(--font-mono); font-size:11px; color:var(--color-text-secondary); min-width:45px; text-align:right;">${pct}%</span>
+                    <button onclick="bsModalRows.splice(${i},1); renderBsModalRows()" style="padding:3px 10px; font-size:11px; color:var(--color-error); border-color:var(--color-error); flex-shrink:0;">Delete</button>
+                </div>`;
+            }).join('');
+        }
+
+        function addBsRow() {
+            const last = bsModalRows.length > 0 ? bsModalRows[bsModalRows.length - 1] : { min: 0, max: 0 };
+            const nextMin = (last.max || last.min) + 1;
+            bsModalRows.push({ min: nextMin, max: '' });
+            renderBsModalRows();
+            document.getElementById('bs-modal-rows').scrollTop = 99999;
+        }
+
+        function addBsSingleRows() {
+            bsModalRows = [];
+            for (let i = 1; i <= 10; i++) bsModalRows.push({ min: i, max: i });
+            renderBsModalRows();
+        }
+
+        function applyBsModal() {
+            const parts = bsModalRows.map(r => {
+                if (r.max === '' || r.max === undefined) return r.min + '+';
+                if (r.min === r.max) return String(r.min);
+                return r.min + '-' + r.max;
+            });
+            applyBsBins(parts.join(','));
+            closeBsModal();
+        }
+
         function resetViewRange(dim) {
             viewRange[dim] = null;
             renderStats(dim);
@@ -609,8 +875,36 @@
                 fBins[bin] = (fBins[bin] || 0) + v;
             }
             fData = Object.entries(fBins).map(([k, v]) => ({ f: parseInt(k), n: v })).sort((a, b) => a.f - b.f);
-            aovData = Object.entries(mergedAOV).map(([k, v]) => ({ aov: parseInt(k), n: v })).sort((a, b) => a.aov - b.aov);
-            bsData = Object.entries(mergedBS).map(([k, v]) => ({ bs: parseInt(k), n: v })).sort((a, b) => a.bs - b.bs);
+            aovRawMerged = mergedAOV;
+            // Group AOV by bins
+            aovBinParsed = parseAovBins(aovBinStr);
+            aovBinLabels = aovBinParsed.map(b => b.label);
+            const aovBinCounts = new Array(aovBinParsed.length).fill(0);
+            for (const [k, v] of Object.entries(mergedAOV)) {
+                const val = parseInt(k);
+                for (let i = 0; i < aovBinParsed.length; i++) {
+                    if (val >= aovBinParsed[i].min && val <= aovBinParsed[i].max) {
+                        aovBinCounts[i] += v;
+                        break;
+                    }
+                }
+            }
+            aovData = aovBinParsed.map((b, i) => ({ aov: i, n: aovBinCounts[i] })).filter(d => d.n > 0);
+            bsRawMerged = mergedBS;
+            // Group BS by bins
+            bsBinParsed = parseAovBins(bsBinStr);
+            bsBinLabels = bsBinParsed.map(b => b.label);
+            const bsBinCounts = new Array(bsBinParsed.length).fill(0);
+            for (const [k, v] of Object.entries(mergedBS)) {
+                const val = parseInt(k);
+                for (let i = 0; i < bsBinParsed.length; i++) {
+                    if (val >= bsBinParsed[i].min && val <= bsBinParsed[i].max) {
+                        bsBinCounts[i] += v;
+                        break;
+                    }
+                }
+            }
+            bsData = bsBinParsed.map((b, i) => ({ bs: i, n: bsBinCounts[i] })).filter(d => d.n > 0);
 
             // Recalculate zoom presets
             ['r', 'f', 'aov', 'bs'].forEach(dim => {
@@ -831,22 +1125,21 @@
                 chartValues = filteredData.map(item => item.n);
                 chartColors = '#3b82f6';
                 chartBorderColors = '#2563eb';
+            } else if (dim === 'aov') {
+                chartLabels = filteredData.map(item => aovBinLabels[item.aov] || item.aov);
+                chartValues = filteredData.map(item => item.n);
+                chartColors = '#3b82f6';
+                chartBorderColors = '#2563eb';
+            } else if (dim === 'bs') {
+                chartLabels = filteredData.map(item => bsBinLabels[item.bs] || item.bs);
+                chartValues = filteredData.map(item => item.n);
+                chartColors = '#3b82f6';
+                chartBorderColors = '#2563eb';
             } else {
                 chartLabels = filteredData.map(item => item[key]);
                 chartValues = filteredData.map(item => item.n);
-                chartColors = filteredData.map(() => '#3b82f6');
-                chartBorderColors = filteredData.map(() => '#2563eb');
-
-                // Add "Others" bar for AOV/BS when view range is set
-                if ((dim === 'aov' || dim === 'bs') && viewRange[dim]) {
-                    const othersCount = data.filter(item => item[key] < vr[0] || item[key] > vr[1]).reduce((s, d) => s + d.n, 0);
-                    if (othersCount > 0) {
-                        chartLabels.push(vr[1] + '+');
-                        chartValues.push(othersCount);
-                        chartColors.push('#e5e7eb');
-                        chartBorderColors.push('#d4d4d4');
-                    }
-                }
+                chartColors = '#3b82f6';
+                chartBorderColors = '#2563eb';
             }
 
             const total = getTotalUsers(data);
@@ -881,7 +1174,8 @@
                             color: '#6b7280',
                             formatter: (value) => {
                                 const pct = total > 0 ? (value / total) * 100 : 0;
-                                return pct >= 0.1 ? pct.toFixed(1) + '%' : '<0.1%';
+                                const pctStr = pct >= 0.1 ? pct.toFixed(1) + '%' : '<0.1%';
+                                return formatNumber(value) + '\n' + pctStr;
                             }
                         },
                         tooltip: {
@@ -948,29 +1242,54 @@
                    </div>`
                 : '';
             const vr = viewRange[dim] || [stats.min, stats.max];
-            const viewTotal = (dim === 'aov' || dim === 'bs') && viewRange[dim]
+            const viewTotal = dim === 'bs' && viewRange[dim]
                 ? data.filter(d => d[dim] >= vr[0] && d[dim] <= vr[1]).reduce((s, d) => s + d.n, 0)
                 : total;
 
-            const rangeFilter = (dim === 'aov' || dim === 'bs')
-                ? `<div class="stat-card">
-                    <div class="stat-label">View Range</div>
-                    <div style="display:flex; align-items:center; gap:6px; justify-content:center; margin-top:4px;">
-                        <input type="number" value="${vr[0]}" min="${stats.min}" max="${stats.max}" style="width:70px; padding:4px 6px; border:1px solid var(--color-border); border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:13px; text-align:center; font-weight:600; color:var(--color-primary);"
-                               onchange="viewRange['${dim}'] = viewRange['${dim}'] || [${stats.min},${stats.max}]; viewRange['${dim}'][0] = parseInt(this.value)||${stats.min}; renderStats('${dim}'); renderChart('${dim}');">
-                        <span style="color:var(--color-text-tertiary);">-</span>
-                        <input type="number" value="${vr[1]}" min="${stats.min}" max="${stats.max}" style="width:70px; padding:4px 6px; border:1px solid var(--color-border); border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:13px; text-align:center; font-weight:600; color:var(--color-primary);"
-                               onchange="viewRange['${dim}'] = viewRange['${dim}'] || [${stats.min},${stats.max}]; viewRange['${dim}'][1] = parseInt(this.value)||${stats.max}; renderStats('${dim}'); renderChart('${dim}');">
-                        ${viewRange[dim] ? `<button onclick="resetViewRange('${dim}')" style="padding:2px 8px; font-size:11px; margin-left:2px;">Reset</button>` : ''}
+            // AOV: preset buttons
+            const aovPresets = dim === 'aov'
+                ? `<div class="stat-card" style="grid-column: span 2;">
+                    <div class="stat-label">View</div>
+                    <div style="display:flex; align-items:center; gap:4px; justify-content:center; margin-top:6px; flex-wrap:wrap;">
+                        ${[
+                            {label:'1-10', bins:'1,2,3,4,5,6,7,8,9,10'},
+                            {label:'1-20', bins:'1,2,3,4,5,6,7,8,9,10,11-20'},
+                            {label:'1-50', bins:'1,2,3,4,5,6,7,8,9,10,11-20,21-50'},
+                            {label:'1-100', bins:'1,2,3,4,5,6,7,8,9,10,11-20,21-50,51-100'},
+                            {label:'All', bins:'1,2,3,4,5,6,7,8,9,10,11-20,21-50,51-100,101-200,201-500,501-1000,1001-10000,10000+'},
+                        ].map(p => {
+                            const isActive = aovBinStr === p.bins;
+                            return `<button onclick="applyAovBins('${p.bins}')" style="padding:4px 10px; font-size:11px; font-family:var(--font-mono); ${isActive ? 'background:var(--color-primary);color:white;border-color:var(--color-primary);' : ''}">${p.label}</button>`;
+                        }).join('')}
+                        <button onclick="openAovModal()" style="padding:4px 10px; font-size:11px; font-family:var(--font-mono); background:var(--color-surface); border-style:dashed;">+ Custom</button>
+                    </div>
+                   </div>`
+                : '';
+
+            // BS: preset buttons
+            const bsPresets = dim === 'bs'
+                ? `<div class="stat-card" style="grid-column: span 2;">
+                    <div class="stat-label">View</div>
+                    <div style="display:flex; align-items:center; gap:4px; justify-content:center; margin-top:6px; flex-wrap:wrap;">
+                        ${[
+                            {label:'1-10', bins:'1,2,3,4,5,6,7,8,9,10'},
+                            {label:'1-20', bins:'1,2,3,4,5,6,7,8,9,10,11-20'},
+                            {label:'1-50', bins:'1,2,3,4,5,6,7,8,9,10,11-20,21-50'},
+                            {label:'All', bins:'1,2,3,4,5,6,7,8,9,10,11-20,21-50,51-100,101-200,201+'},
+                        ].map(p => {
+                            const isActive = bsBinStr === p.bins;
+                            return `<button onclick="applyBsBins('${p.bins}')" style="padding:4px 10px; font-size:11px; font-family:var(--font-mono); ${isActive ? 'background:var(--color-primary);color:white;border-color:var(--color-primary);' : ''}">${p.label}</button>`;
+                        }).join('')}
+                        <button onclick="openBsModal()" style="padding:4px 10px; font-size:11px; font-family:var(--font-mono); background:var(--color-surface); border-style:dashed;">+ Custom</button>
                     </div>
                    </div>`
                 : '';
 
             banner.innerHTML = `
-                <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value">${formatNumber(viewTotal)}</div></div>
+                <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value">${formatNumber(total)}</div></div>
                 <div class="stat-card"><div class="stat-label">Rounds</div><div class="stat-value">${selectedRounds} / ${roundDates.length}</div></div>
-                <div class="stat-card"><div class="stat-label">Range</div><div class="stat-value">${stats.min} - ${stats.max}</div></div>
-                ${rangeFilter}
+                ${aovPresets}
+                ${bsPresets}
                 ${othersBtn}
             `;
         }
@@ -996,6 +1315,8 @@
             let rows = filtered.map(d => {
                 let metricDisplay = d[key];
                 if (dim === 'f') metricDisplay = ((d.f - 1) * 10 + 1) + '-' + (d.f * 10);
+                if (dim === 'aov') metricDisplay = aovBinLabels[d.aov] || d.aov;
+                if (dim === 'bs') metricDisplay = bsBinLabels[d.bs] || d.bs;
                 return { metric: d[key], metricDisplay, users: d.n, pct: total > 0 ? (d.n / total) * 100 : 0 };
             });
 
