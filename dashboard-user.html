@@ -1115,8 +1115,8 @@
                     }
                 }
             } else if (dim === 'f') {
-                // Frequency = Round_Buy_Last24 (0-24)
-                chartLabels = filteredData.map(item => item.f);
+                // Frequency = Round_Buy_Last24 (0-24), dual label: value + missing rounds
+                chartLabels = filteredData.map(item => [item.f, 'miss ' + (24 - item.f)]);
                 chartValues = filteredData.map(item => item.n);
                 chartColors = '#3b82f6';
                 chartBorderColors = '#2563eb';
